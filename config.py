@@ -41,3 +41,9 @@ KEY_MEDIA_MAP = {
     'm': ('se', 'camera.mp3'),
 }
 
+# 動画ウィンドウ表示設定
+VIDEO_WINDOW_WIDTH = 360
+VIDEO_WINDOW_HEIGHT = 240
+VIDEO_WINDOW_POSITION = "bottom_right"  # "bottom_right", "top_right", "bottom_left", "top_left", "center"
+
+
