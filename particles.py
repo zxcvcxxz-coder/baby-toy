@@ -62,11 +62,35 @@ class ParticleManager:
         self.particles.append(particle)
 
     def add_alphabet_rain(self):
-        """'a' キー押下時の全アルファベット下降エフェクトを生成"""
+        """'a' キー押下時の小文字アルファベット下降エフェクトを生成"""
+        self._add_rain_effect("abcdefghijklmnopqrstuvwxyz")
+
+    def add_uppercase_rain(self):
+        """大文字アルファベット下降エフェクトを生成"""
+        self._add_rain_effect("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+    def add_hiragana_rain(self):
+        """ひらがな下降エフェクトを生成"""
+        chars = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれをん"
+        self._add_rain_effect(chars)
+
+    def add_katakana_rain(self):
+        """カタカナ下降エフェクトを生成"""
+        chars = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレヲン"
+        self._add_rain_effect(chars)
+
+    def add_number_symbol_rain(self):
+        """数字・記号下降エフェクトを生成"""
+        chars = "0123456789!@#$%^&*()_+-=[]{}|;:,.<>/?"
+        self._add_rain_effect(chars)
+
+    def _add_rain_effect(self, chars: str, count: int = 35):
+        """指定された文字群からパーティクルの雨を降らせる共通内部処理"""
         min_x = min(50, self.width // 10)
         max_x = max(min_x + 1, self.width - min_x)
 
-        for char in "abcdefghijklmnopqrstuvwxyz":
+        target_chars = [random.choice(chars) for _ in range(count)] if len(chars) > count else list(chars)
+        for char in target_chars:
             particle = Particle(
                 text=char,
                 x=random.randint(min_x, max_x),

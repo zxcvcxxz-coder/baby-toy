@@ -1,5 +1,6 @@
 import os
 import random
+import time
 import cv2
 import pygame
 from src.config import (
@@ -30,30 +31,45 @@ class ActiveVideo:
         if self.is_finished or self.cap is None:
             return False
 
-        self._frame_counter += 1
+        try:
+            self._frame_counter += 1
 
-        # フレームスキップ: VIDEO_FRAME_SKIP フレームに1回だけデコード
-        if self._frame_counter % VIDEO_FRAME_SKIP != 0:
-            # フレームを読み進めるだけでデコードはスキップ
-            self.cap.grab()
+            # フレームスキップ: VIDEO_FRAME_SKIP フレームに1回だけデコード
+            if self._frame_counter % VIDEO_FRAME_SKIP != 0:
+                # フレームを読み進めるだけでデコードはスキップ
+                self.cap.grab()
+                return True
+
+            ret, frame = self.cap.read()
+            if not ret or frame is None:
+                self.stop()
+                return False
+
+            # OpenCV BGR -> RGB 変換 (リサイズ先を先に決めてからデコード)
+            h, w = frame.shape[:2]
+            scale = min(VIDEO_WINDOW_WIDTH / w, VIDEO_WINDOW_HEIGHT / h)
+            new_w = max(1, int(w * scale))
+            new_h = max(1, int(h * scale))
+
+            # OpenCV側で先にリサイズしてからPygameに渡す（負荷が低い）
+            small_frame = cv2.resize(frame, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+            frame_rgb = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
+            self.surface = pygame.image.frombuffer(frame_rgb.tobytes(), (new_w, new_h), "RGB").copy()
             return True
-
-        ret, frame = self.cap.read()
-        if not ret:
+        except Exception as e:
+            print(f"動画デコード処理エラー: {e}")
             self.stop()
             return False
 
-        # OpenCV BGR -> RGB 変換 (リサイズ先を先に決めてからデコード)
-        h, w = frame.shape[:2]
-        scale = min(VIDEO_WINDOW_WIDTH / w, VIDEO_WINDOW_HEIGHT / h)
-        new_w = int(w * scale)
-        new_h = int(h * scale)
-
-        # OpenCV側で先にリサイズしてからPygameに渡す（負荷が低い）
-        small_frame = cv2.resize(frame, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
-        frame_rgb = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
-        self.surface = pygame.image.frombuffer(frame_rgb.tobytes(), (new_w, new_h), "RGB").copy()
-        return True
+    def restart(self):
+        """動画を先頭フレームに巻き戻して即座に再スタート（開き直し負荷ゼロ）"""
+        if self.cap is not None and self.cap.isOpened():
+            try:
+                self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                self.is_finished = False
+                self._frame_counter = 0
+            except Exception:
+                pass
 
     def draw(self, screen: pygame.Surface):
         """動画と可愛い角丸枠を自らの (x, y) 座標に描画"""
@@ -94,6 +110,7 @@ class MediaManager:
         self.active_videos = []
         self.screen_width = WIDTH
         self.screen_height = HEIGHT
+        self.last_video_trigger_time = 0.0  # 連打保護用タイムスタンプ
 
         # pygame.mixer の初期化チェック
         if not pygame.mixer.get_init():
@@ -140,12 +157,12 @@ class MediaManager:
         elif media_type == 'vid':
             filepath = VID_DIR / filename
             if filepath.exists():
-                # 最大同時表示数 (MAX_VIDEO_WINDOWS) を超えていたら、一番古い動画を破棄
-                if len(self.active_videos) >= MAX_VIDEO_WINDOWS:
-                    oldest_vid = self.active_videos.pop(0)
-                    oldest_vid.stop()
+                str_path = str(filepath)
 
-                # 画面枠に収まるランダム座標を計算
+                # 既存の動画を停止・消去してリセット
+                self.stop_video()
+
+                # 改めて画面内のランダムな別座標（x, y）を計算
                 frame_w = VIDEO_WINDOW_WIDTH + 16
                 frame_h = VIDEO_WINDOW_HEIGHT + 16
                 max_x = max(20, self.screen_width - frame_w - 20)
@@ -154,11 +171,14 @@ class MediaManager:
                 x = random.randint(20, max_x)
                 y = random.randint(20, max_y)
 
-                # 新しい動画ウィンドウを生成して追加
-                new_vid = ActiveVideo(str(filepath), x, y)
-                if not new_vid.is_finished:
-                    self.active_videos.append(new_vid)
-                    return True
+                try:
+                    # 改めて別座標で新しい動画ウィンドウを生成して再生開始
+                    new_vid = ActiveVideo(str_path, x, y)
+                    if not new_vid.is_finished:
+                        self.active_videos.append(new_vid)
+                        return True
+                except Exception as e:
+                    print(f"動画再生起動エラー ({filename}): {e}")
 
         return False
 

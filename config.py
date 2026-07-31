@@ -8,7 +8,7 @@ WIDTH = 800
 HEIGHT = 600
 TITLE = "赤ちゃん用おもちゃアプリ"
 FPS = 60
-IS_FULLSCREEN = True  # 全画面モードフラグ
+IS_FULLSCREEN = True # 全画面モードフラグ
 
 # 初期表示設定
 DEFAULT_BACKGROUND_COLOR = (30, 30, 40)

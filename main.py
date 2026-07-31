@@ -8,7 +8,7 @@ def show_welcome_message():
     print(" 【GUIアプリ版 テスト】")
     print(" 5秒後にキーフックが有効になります。")
     print(" ・画面が出たらキーをバシバシ押してみてください")
-    print(" ・終了するには 'q' 'u' 'i' 't' を順番に")
+    print(" ・終了するには 'mamadaisuki', 'ilovemother', '20251102' のいずれかを順に入力")
     print("========================================")
 
     for i in range(5, 0, -1):

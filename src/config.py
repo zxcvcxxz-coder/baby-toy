@@ -29,7 +29,7 @@ FONT_SIZE_LARGE = 80
 FONT_SIZE_SMALL = 40
 
 # 隠し終了コマンド
-EXIT_SECRET = ['q', 'u', 'i', 't']
+EXIT_SECRETS = ['mamadaisuki', 'ilovemother', '20251102']
 
 # ホワイトリスト（反応を許可するキー・文字セット）
 ALLOWED_CHARS = set(string.ascii_lowercase + string.digits + string.punctuation + " ")
@@ -50,9 +50,9 @@ KEY_MEDIA_MAP = {
     'm': ('se', 'camera.mp3'),
 }
 
-# 動画ウィンドウ表示設定（軽量化のためサイズ・同時数を抑制）
-VIDEO_WINDOW_WIDTH = 240   # 小さくして負荷軽減
-VIDEO_WINDOW_HEIGHT = 160
+# 動画ウィンドウ表示設定（3回り大きく拡大）
+VIDEO_WINDOW_WIDTH = 480   # 240 -> 480 に拡大
+VIDEO_WINDOW_HEIGHT = 320  # 160 -> 320 に拡大
 VIDEO_WINDOW_POSITION = "bottom_right"
 MAX_VIDEO_WINDOWS = 3      # 同時再生数を減らして負荷軽減
 VIDEO_FRAME_SKIP = 2       # N フレームごとに1枚だけデコード（大きいほど軽い）
@@ -65,9 +65,9 @@ IMAGE_SCROLL_SIZE = 200          # 画像の表示サイズ (短辺基準 px)
 IMAGE_SCROLL_DIRECTIONS = ['left', 'right', 'up', 'down']  # ランダム抽選対象
 
 # キーログ表示設定（左上の薄い文字蓄積）
-KEY_LOG_MAX_CHARS = 300          # この文字数を超えたらクリア
-KEY_LOG_FONT_SIZE = 28           # キーログの文字サイズ
-KEY_LOG_COLOR = (200, 200, 200)  # キーログの文字色
-KEY_LOG_ALPHA = 60               # 透明度 (0=透明, 255=不透明)
-KEY_LOG_MARGIN = 12              # 画面端からの余白 px
-KEY_LOG_LINE_WIDTH = 40          # 1行あたりの文字数（折り返し）
+KEY_LOG_MAX_CHARS = 100          # 特大文字用に適切な最大蓄積数
+KEY_LOG_FONT_SIZE = 140          # キーログの文字サイズ（特大サイズ）
+KEY_LOG_COLOR = (220, 220, 220)  # キーログの文字色
+KEY_LOG_ALPHA = 50               # 透明度 (0=透明, 255=不透明)
+KEY_LOG_MARGIN = 20              # 画面端からの余白 px
+KEY_LOG_LINE_WIDTH = 12          # 1行あたりの文字数（折り返し）
