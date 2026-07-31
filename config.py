@@ -25,3 +25,19 @@ EXIT_SECRET = ['q', 'u', 'i', 't']
 # ホワイトリスト（反応を許可するキー・文字セット）
 ALLOWED_CHARS = set(string.ascii_lowercase + string.digits + string.punctuation + " ")
 ALLOWED_KEY_NAMES = {'space', 'enter', 'return'}
+
+# 特定キーとメディア（assets/se, assets/vid）の紐付け設定
+KEY_MEDIA_MAP = {
+    'c': ('se', 'cat01.mp3'),
+    'd': ('se', 'dog.mp3'),
+    'e': ('se', 'elephant.mp3'),
+    'g': ('vid', 'Cute-ghost01.mp4'),
+    't': ('se', 'train.mp3'),
+    'p': ('se', 'phone.mp3'),
+    'r': ('se', 'robot01.mp3'),
+    'w': ('se', 'wolf.mp3'),
+    's': ('se', 'seagull.mp3'),
+    'h': ('se', 'helicopter.mp3'),
+    'm': ('se', 'camera.mp3'),
+}
+

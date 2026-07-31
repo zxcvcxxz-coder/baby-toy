@@ -6,6 +6,7 @@ from config import (
 )
 from particles import ParticleManager
 from key_handler import KeyHandler
+from media_manager import MediaManager
 
 class BabyToyApp:
     """アプリケーションのメインウィンドウと描画ループを管理するクラス"""
@@ -27,7 +28,8 @@ class BabyToyApp:
         self.font_small = pygame.font.SysFont(None, FONT_SIZE_SMALL)
 
         self.particle_manager = ParticleManager(self.width, self.height)
-        self.key_handler = KeyHandler(self.particle_manager)
+        self.media_manager = MediaManager()
+        self.key_handler = KeyHandler(self.particle_manager, self.media_manager)
 
     def run(self):
         """アプリケーションを開始してメインループを実行"""
@@ -46,8 +48,9 @@ class BabyToyApp:
                         # ESCキーでも全画面を安全に終了できるように補助
                         running = False
 
-                # 画面更新
+                # 状態更新
                 self.particle_manager.update()
+                self.media_manager.update_video(self.width, self.height)
 
                 # 背景色塗りつぶし
                 self.screen.fill(self.key_handler.background_color)
@@ -62,6 +65,9 @@ class BabyToyApp:
                 # パーティクル描画
                 self.particle_manager.draw(self.screen, self.font_small)
 
+                # 再生中の動画描画
+                self.media_manager.draw_video(self.screen)
+
                 pygame.display.flip()
                 self.clock.tick(FPS)
 
@@ -73,5 +79,7 @@ class BabyToyApp:
     def cleanup(self):
         """リソースの解放および終了処理"""
         self.key_handler.stop_hook()
+        self.media_manager.stop_video()
         pygame.quit()
         sys.exit(0)
+

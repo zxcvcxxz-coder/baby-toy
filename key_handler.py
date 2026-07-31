@@ -5,11 +5,13 @@ from config import (
     ALLOWED_CHARS, ALLOWED_KEY_NAMES
 )
 from particles import ParticleManager
+from media_manager import MediaManager
 
 class KeyHandler:
     """キーフックおよびホワイトリスト方式による入力状態制御を管理するクラス"""
-    def __init__(self, particle_manager: ParticleManager):
+    def __init__(self, particle_manager: ParticleManager, media_manager: MediaManager = None):
         self.particle_manager = particle_manager
+        self.media_manager = media_manager
         self.pressed_keys = []
         self.is_exit_requested = False
         self.background_color = DEFAULT_BACKGROUND_COLOR
@@ -38,11 +40,15 @@ class KeyHandler:
 
         # 2. ホワイトリストによる制御
         if not self.is_exit_requested:
-            # ホワイトリストに含まれないキー（MyASUSキー、各種Fキー、特殊ベンダーキー等）は一切無視
+            # ホワイトリストに含まれないキーは無視
             if not self.is_key_allowed(name):
                 return False
 
-            # ホワイトリストに合致したキーのみアクションを実行
+            # 特定のキーに対応する音源・動画の再生を試みる
+            if self.media_manager is not None:
+                self.media_manager.play_media_for_key(name)
+
+            # ホワイトリストに合致したキーアクション
             self.background_color = (
                 random.randint(20, 100),
                 random.randint(20, 100),
@@ -70,3 +76,4 @@ class KeyHandler:
     def stop_hook(self):
         """キーフックを解除"""
         keyboard.unhook_all()
+
