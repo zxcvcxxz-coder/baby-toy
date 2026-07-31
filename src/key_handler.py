@@ -1,0 +1,87 @@
+import random
+import keyboard
+from src.config import (
+    EXIT_SECRET, DEFAULT_BACKGROUND_COLOR, DEFAULT_DISPLAY_TEXT,
+    ALLOWED_CHARS, ALLOWED_KEY_NAMES, IMAGE_SCROLL_KEYS
+)
+from src.particles import ParticleManager
+from src.media_manager import MediaManager
+from src.image_scroller import ImageScroller
+
+class KeyHandler:
+    """キーフックおよびホワイトリスト方式による入力状態制御を管理するクラス"""
+    def __init__(self, particle_manager: ParticleManager, media_manager: MediaManager = None,
+                 image_scroller: ImageScroller = None):
+        self.particle_manager = particle_manager
+        self.media_manager = media_manager
+        self.image_scroller = image_scroller
+        self.pressed_keys = []
+        self.is_exit_requested = False
+        self.background_color = DEFAULT_BACKGROUND_COLOR
+        self.display_text = DEFAULT_DISPLAY_TEXT
+
+
+    def is_key_allowed(self, name: str) -> bool:
+        """入力されたキーがホワイトリストに含まれるか判定"""
+        if name in ALLOWED_CHARS or name in ALLOWED_KEY_NAMES:
+            return True
+        return False
+
+    def handle_key_event(self, event):
+        """キーボードフックイベントのコールバック"""
+        name = event.name.lower()
+
+        # 1. 終了コマンドの判定
+        if name == EXIT_SECRET[len(self.pressed_keys)]:
+            self.pressed_keys.append(name)
+            if self.pressed_keys == EXIT_SECRET:
+                self.is_exit_requested = True
+        else:
+            if name == EXIT_SECRET[0]:
+                self.pressed_keys = [name]
+            else:
+                self.pressed_keys = []
+
+        # 2. ホワイトリストによる制御
+        if not self.is_exit_requested:
+            # ホワイトリストに含まれないキーは無視
+            if not self.is_key_allowed(name):
+                return False
+
+            # 特定のキーに対応する音源・動画の再生を試みる
+            if self.media_manager is not None:
+                self.media_manager.play_media_for_key(name)
+
+            # 画像スクロールキーの場合はスクロールをトリガー
+            if self.image_scroller is not None and name in IMAGE_SCROLL_KEYS:
+                self.image_scroller.trigger()
+
+
+            # ホワイトリストに合致したキーアクション
+            self.background_color = (
+                random.randint(20, 100),
+                random.randint(20, 100),
+                random.randint(50, 150)
+            )
+
+            # 表示テキストの整形
+            display_name = "SPACE" if name == "space" else name.upper()
+            self.display_text = f"KEY: {display_name}"
+
+            if name == 'a':
+                self.particle_manager.add_alphabet_rain()
+            else:
+                self.particle_manager.add_normal_key_effect(display_name)
+
+        return False
+
+    def start_hook(self):
+        """キーフックを開始（すべての入力を抑制し、ホワイトリストのみ受け付ける）"""
+        keyboard.hook(
+            lambda e: self.handle_key_event(e) if e.event_type == keyboard.KEY_DOWN else None,
+            suppress=True
+        )
+
+    def stop_hook(self):
+        """キーフックを解除"""
+        keyboard.unhook_all()

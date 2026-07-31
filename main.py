@@ -1,5 +1,6 @@
 import time
-from app import BabyToyApp
+from src.app import BabyToyApp
+
 
 def show_welcome_message():
     """起動時のコンソール案内を表示"""
