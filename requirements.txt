@@ -12,6 +12,7 @@ fsspec==2025.9.0
 greenlet==3.3.2
 h11==0.16.0
 idna==3.10
+imageio-ffmpeg==0.6.0
 Jinja2==3.1.6
 keyboard==0.13.5
 MarkupSafe==3.0.2
@@ -26,6 +27,7 @@ playwright==1.58.0
 pydantic==2.11.9
 pydantic_core==2.33.2
 pyee==13.0.1
+pygame==2.6.1
 pyinstaller==6.16.0
 pyinstaller-hooks-contrib==2025.8
 pywin32-ctypes==0.2.3
