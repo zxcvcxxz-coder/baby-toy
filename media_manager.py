@@ -1,21 +1,96 @@
 import os
+import random
 import cv2
 import pygame
 from config import (
     KEY_MEDIA_MAP,
     VIDEO_WINDOW_WIDTH,
     VIDEO_WINDOW_HEIGHT,
-    VIDEO_WINDOW_POSITION
+    MAX_VIDEO_WINDOWS,
+    WIDTH,
+    HEIGHT
 )
 
+class ActiveVideo:
+    """再生中の各動画ウィンドウを管理するクラス"""
+    def __init__(self, filepath: str, x: int, y: int):
+        self.filepath = filepath
+        self.x = x
+        self.y = y
+        self.cap = cv2.VideoCapture(filepath)
+        self.is_finished = not self.cap.isOpened()
+        self.surface = None
+
+    def update(self) -> bool:
+        """次の動画フレームを取得してリサイズ Pygame Surface に変換"""
+        if self.is_finished or self.cap is None:
+            return False
+
+        ret, frame = self.cap.read()
+        if not ret:
+            self.stop()
+            return False
+
+        # OpenCV (BGR) -> Pygame (RGB) 変換
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        h, w, _ = frame_rgb.shape
+        surf = pygame.image.frombuffer(frame_rgb.tobytes(), (w, h), "RGB")
+
+        # 指定サイズにアスペクト比維持でスケール
+        scale = min(VIDEO_WINDOW_WIDTH / w, VIDEO_WINDOW_HEIGHT / h)
+        new_w = int(w * scale)
+        new_h = int(h * scale)
+        self.surface = pygame.transform.smoothscale(surf, (new_w, new_h))
+        return True
+
+    def draw(self, screen: pygame.Surface):
+        """動画とウィンドウ枠を自らの (x, y) 座標に描画"""
+        if self.surface is None:
+            return
+
+        vw, vh = self.surface.get_width(), self.surface.get_height()
+        padding = 10
+        header_height = 24
+        frame_w = vw + (padding * 2)
+        frame_h = vh + padding + header_height
+
+        # 1. 影（ドロップシャドウ）
+        shadow_rect = pygame.Rect(self.x + 5, self.y + 5, frame_w, frame_h)
+        pygame.draw.rect(screen, (10, 10, 15, 120), shadow_rect, border_radius=12)
+
+        # 2. ウィンドウ枠の背景
+        frame_rect = pygame.Rect(self.x, self.y, frame_w, frame_h)
+        pygame.draw.rect(screen, (40, 45, 60), frame_rect, border_radius=12)
+        pygame.draw.rect(screen, (100, 180, 255), frame_rect, width=3, border_radius=12)
+
+        # 3. ヘッダー部の装飾ボタン（赤・黄・緑）
+        dot_colors = [(255, 95, 86), (255, 189, 46), (39, 201, 63)]
+        for i, color in enumerate(dot_colors):
+            dot_x = self.x + 15 + (i * 16)
+            dot_y = self.y + (header_height // 2) + 2
+            pygame.draw.circle(screen, color, (dot_x, dot_y), 5)
+
+        # 4. 動画本体の描画
+        vid_x = self.x + padding
+        vid_y = self.y + header_height
+        screen.blit(self.surface, (vid_x, vid_y))
+
+    def stop(self):
+        """キャプチャのリソース解放"""
+        if self.cap is not None:
+            self.cap.release()
+            self.cap = None
+        self.is_finished = True
+
+
 class MediaManager:
-    """効果音(assets/se)および動画(assets/vid)の再生管理クラス"""
+    """効果音(assets/se)および複数動画(assets/vid)の再生管理クラス"""
     def __init__(self, base_dir: str = "."):
         self.base_dir = base_dir
         self.sounds = {}
-        self.cap = None
-        self.is_video_playing = False
-        self.video_surface = None
+        self.active_videos = []
+        self.screen_width = WIDTH
+        self.screen_height = HEIGHT
 
         # pygame.mixer の初期化チェック
         if not pygame.mixer.get_init():
@@ -63,97 +138,51 @@ class MediaManager:
         elif media_type == 'vid':
             filepath = os.path.join(self.base_dir, "assets", "vid", filename)
             if os.path.exists(filepath):
-                self.stop_video()
-                self.cap = cv2.VideoCapture(filepath)
-                if self.cap.isOpened():
-                    self.is_video_playing = True
+                # 最大同時表示数 (MAX_VIDEO_WINDOWS) を超えていたら、一番古い動画を破棄
+                if len(self.active_videos) >= MAX_VIDEO_WINDOWS:
+                    oldest_vid = self.active_videos.pop(0)
+                    oldest_vid.stop()
+
+                # 画面枠に収まるランダム座標を計算
+                frame_w = VIDEO_WINDOW_WIDTH + 20
+                frame_h = VIDEO_WINDOW_HEIGHT + 34
+                max_x = max(20, self.screen_width - frame_w - 20)
+                max_y = max(20, self.screen_height - frame_h - 20)
+
+                x = random.randint(20, max_x)
+                y = random.randint(20, max_y)
+
+                # 新しい動画ウィンドウを生成して追加
+                new_vid = ActiveVideo(filepath, x, y)
+                if not new_vid.is_finished:
+                    self.active_videos.append(new_vid)
                     return True
 
         return False
 
     def update_video(self, target_width: int, target_height: int):
-        """動画が再生中の場合、フレームを更新して指定小窓サイズにリサイズ"""
-        if not self.is_video_playing or self.cap is None:
-            return
+        """すべてのアクティブな動画ウィンドウのフレームを更新"""
+        self.screen_width = target_width
+        self.screen_height = target_height
 
-        ret, frame = self.cap.read()
-        if not ret:
-            # 動画再生終了
-            self.stop_video()
-            return
+        still_active = []
+        for vid in self.active_videos:
+            if vid.update():
+                still_active.append(vid)
+            else:
+                vid.stop()
 
-        # OpenCV (BGR) -> Pygame (RGB) 変換
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        
-        h, w, c = frame_rgb.shape
-        surf = pygame.image.frombuffer(frame_rgb.tobytes(), (w, h), "RGB")
-
-        # 設定された小窓サイズにアスペクト比維持でスケール
-        scale = min(VIDEO_WINDOW_WIDTH / w, VIDEO_WINDOW_HEIGHT / h)
-        new_w = int(w * scale)
-        new_h = int(h * scale)
-        self.video_surface = pygame.transform.smoothscale(surf, (new_w, new_h))
+        self.active_videos = still_active
 
     def draw_video(self, screen: pygame.Surface):
-        """再生中の動画フレームをウィンドウ枠(ポップアップ風)で指定位置に描画"""
-        if not self.is_video_playing or self.video_surface is None:
-            return
-
-        sw, sh = screen.get_width(), screen.get_height()
-        vw, vh = self.video_surface.get_width(), self.video_surface.get_height()
-
-        # ウィンドウ枠のサイズ（余白・ヘッダー部分を含む）
-        padding = 10
-        header_height = 24
-        frame_w = vw + (padding * 2)
-        frame_h = vh + padding + header_height
-
-        margin = 25  # 画面端からのマージン
-        pos = VIDEO_WINDOW_POSITION.lower()
-
-        # 表示位置の計算
-        if pos == "bottom_right":
-            x = sw - frame_w - margin
-            y = sh - frame_h - margin
-        elif pos == "top_right":
-            x = sw - frame_w - margin
-            y = margin
-        elif pos == "bottom_left":
-            x = margin
-            y = sh - frame_h - margin
-        elif pos == "top_left":
-            x = margin
-            y = margin
-        else:  # center
-            x = (sw - frame_w) // 2
-            y = (sh - frame_h) // 2
-
-        # 1. 影（ドロップシャドウ）
-        shadow_rect = pygame.Rect(x + 5, y + 5, frame_w, frame_h)
-        pygame.draw.rect(screen, (10, 10, 15, 120), shadow_rect, border_radius=12)
-
-        # 2. ウィンドウ枠の背景
-        frame_rect = pygame.Rect(x, y, frame_w, frame_h)
-        pygame.draw.rect(screen, (40, 45, 60), frame_rect, border_radius=12)
-        pygame.draw.rect(screen, (100, 180, 255), frame_rect, width=3, border_radius=12)
-
-        # 3. ヘッダー部の装飾ボタン（赤・黄・緑のドット）
-        dot_colors = [(255, 95, 86), (255, 189, 46), (39, 201, 63)]
-        for i, color in enumerate(dot_colors):
-            dot_x = x + 15 + (i * 16)
-            dot_y = y + (header_height // 2) + 2
-            pygame.draw.circle(screen, color, (dot_x, dot_y), 5)
-
-        # 4. 動画本体の描画
-        vid_x = x + padding
-        vid_y = y + header_height
-        screen.blit(self.video_surface, (vid_x, vid_y))
+        """すべてのアクティブな動画ウィンドウを画面に描画"""
+        for vid in self.active_videos:
+            vid.draw(screen)
 
     def stop_video(self):
-        """動画再生を停止しリソースを解放"""
-        if self.cap is not None:
-            self.cap.release()
-            self.cap = None
-        self.is_video_playing = False
-        self.video_surface = None
+        """全動画の再生を停止しリソースを解放"""
+        for vid in self.active_videos:
+            vid.stop()
+        self.active_videos.clear()
+
 

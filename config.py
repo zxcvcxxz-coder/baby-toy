@@ -45,5 +45,7 @@ KEY_MEDIA_MAP = {
 VIDEO_WINDOW_WIDTH = 360
 VIDEO_WINDOW_HEIGHT = 240
 VIDEO_WINDOW_POSITION = "bottom_right"  # "bottom_right", "top_right", "bottom_left", "top_left", "center"
+MAX_VIDEO_WINDOWS = 5  # 同時再生できる動画ウィンドウの最大数
+
 
 
