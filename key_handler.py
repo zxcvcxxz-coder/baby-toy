@@ -59,7 +59,7 @@ class KeyHandler:
             display_name = "SPACE" if name == "space" else name.upper()
             self.display_text = f"KEY: {display_name}"
 
-            if name == 'a':
+            if name == 'a' or name == "space" or name == "h" or name == "p" or name == "u" or name == "j" or name == "f" or name == "t":
                 self.particle_manager.add_alphabet_rain()
             else:
                 self.particle_manager.add_normal_key_effect(display_name)
