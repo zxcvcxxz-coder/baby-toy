@@ -44,36 +44,29 @@ class ActiveVideo:
         return True
 
     def draw(self, screen: pygame.Surface):
-        """動画とウィンドウ枠を自らの (x, y) 座標に描画"""
+        """動画と可愛い角丸枠を自らの (x, y) 座標に描画"""
         if self.surface is None:
             return
 
         vw, vh = self.surface.get_width(), self.surface.get_height()
-        padding = 10
-        header_height = 24
+        padding = 8
         frame_w = vw + (padding * 2)
-        frame_h = vh + padding + header_height
+        frame_h = vh + (padding * 2)
 
         # 1. 影（ドロップシャドウ）
-        shadow_rect = pygame.Rect(self.x + 5, self.y + 5, frame_w, frame_h)
-        pygame.draw.rect(screen, (10, 10, 15, 120), shadow_rect, border_radius=12)
+        shadow_rect = pygame.Rect(self.x + 4, self.y + 4, frame_w, frame_h)
+        pygame.draw.rect(screen, (15, 15, 25, 100), shadow_rect, border_radius=16)
 
-        # 2. ウィンドウ枠の背景
+        # 2. フレーム枠の背景（丸みのあるポップな枠）
         frame_rect = pygame.Rect(self.x, self.y, frame_w, frame_h)
-        pygame.draw.rect(screen, (40, 45, 60), frame_rect, border_radius=12)
-        pygame.draw.rect(screen, (100, 180, 255), frame_rect, width=3, border_radius=12)
+        pygame.draw.rect(screen, (35, 40, 55), frame_rect, border_radius=16)
+        pygame.draw.rect(screen, (140, 200, 255), frame_rect, width=3, border_radius=16)
 
-        # 3. ヘッダー部の装飾ボタン（赤・黄・緑）
-        dot_colors = [(255, 95, 86), (255, 189, 46), (39, 201, 63)]
-        for i, color in enumerate(dot_colors):
-            dot_x = self.x + 15 + (i * 16)
-            dot_y = self.y + (header_height // 2) + 2
-            pygame.draw.circle(screen, color, (dot_x, dot_y), 5)
-
-        # 4. 動画本体の描画
+        # 3. 動画本体の描画
         vid_x = self.x + padding
-        vid_y = self.y + header_height
+        vid_y = self.y + padding
         screen.blit(self.surface, (vid_x, vid_y))
+
 
     def stop(self):
         """キャプチャのリソース解放"""
