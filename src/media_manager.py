@@ -7,6 +7,7 @@ from src.config import (
     VIDEO_WINDOW_WIDTH,
     VIDEO_WINDOW_HEIGHT,
     MAX_VIDEO_WINDOWS,
+    VIDEO_FRAME_SKIP,
     WIDTH,
     HEIGHT,
     SE_DIR,
@@ -22,27 +23,36 @@ class ActiveVideo:
         self.cap = cv2.VideoCapture(str(filepath))
         self.is_finished = not self.cap.isOpened()
         self.surface = None
+        self._frame_counter = 0  # フレームスキップ用カウンタ
 
     def update(self) -> bool:
-        """次の動画フレームを取得してリサイズ Pygame Surface に変換"""
+        """フレームスキップ付きで次のフレームを取得し Pygame Surface に変換"""
         if self.is_finished or self.cap is None:
             return False
+
+        self._frame_counter += 1
+
+        # フレームスキップ: VIDEO_FRAME_SKIP フレームに1回だけデコード
+        if self._frame_counter % VIDEO_FRAME_SKIP != 0:
+            # フレームを読み進めるだけでデコードはスキップ
+            self.cap.grab()
+            return True
 
         ret, frame = self.cap.read()
         if not ret:
             self.stop()
             return False
 
-        # OpenCV (BGR) -> Pygame (RGB) 変換
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        h, w, _ = frame_rgb.shape
-        surf = pygame.image.frombuffer(frame_rgb.tobytes(), (w, h), "RGB")
-
-        # 指定サイズにアスペクト比維持でスケール
+        # OpenCV BGR -> RGB 変換 (リサイズ先を先に決めてからデコード)
+        h, w = frame.shape[:2]
         scale = min(VIDEO_WINDOW_WIDTH / w, VIDEO_WINDOW_HEIGHT / h)
         new_w = int(w * scale)
         new_h = int(h * scale)
-        self.surface = pygame.transform.smoothscale(surf, (new_w, new_h))
+
+        # OpenCV側で先にリサイズしてからPygameに渡す（負荷が低い）
+        small_frame = cv2.resize(frame, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+        frame_rgb = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
+        self.surface = pygame.image.frombuffer(frame_rgb.tobytes(), (new_w, new_h), "RGB").copy()
         return True
 
     def draw(self, screen: pygame.Surface):

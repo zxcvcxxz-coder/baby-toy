@@ -50,11 +50,12 @@ KEY_MEDIA_MAP = {
     'm': ('se', 'camera.mp3'),
 }
 
-# 動画ウィンドウ表示設定
-VIDEO_WINDOW_WIDTH = 360
-VIDEO_WINDOW_HEIGHT = 240
-VIDEO_WINDOW_POSITION = "bottom_right"  # "bottom_right", "top_right", "bottom_left", "top_left", "center"
-MAX_VIDEO_WINDOWS = 5  # 同時再生できる動画ウィンドウの最大数
+# 動画ウィンドウ表示設定（軽量化のためサイズ・同時数を抑制）
+VIDEO_WINDOW_WIDTH = 240   # 小さくして負荷軽減
+VIDEO_WINDOW_HEIGHT = 160
+VIDEO_WINDOW_POSITION = "bottom_right"
+MAX_VIDEO_WINDOWS = 3      # 同時再生数を減らして負荷軽減
+VIDEO_FRAME_SKIP = 2       # N フレームごとに1枚だけデコード（大きいほど軽い）
 
 # 画像スクロール設定
 # 押すとランダムな画像がランダムな方向から流れてくるキー
@@ -62,3 +63,11 @@ IMAGE_SCROLL_KEYS = {'f', 'j', 'k', 'n'}
 IMAGE_SCROLL_SPEED = 10          # 1フレームあたりの移動ピクセル数
 IMAGE_SCROLL_SIZE = 200          # 画像の表示サイズ (短辺基準 px)
 IMAGE_SCROLL_DIRECTIONS = ['left', 'right', 'up', 'down']  # ランダム抽選対象
+
+# キーログ表示設定（左上の薄い文字蓄積）
+KEY_LOG_MAX_CHARS = 300          # この文字数を超えたらクリア
+KEY_LOG_FONT_SIZE = 28           # キーログの文字サイズ
+KEY_LOG_COLOR = (200, 200, 200)  # キーログの文字色
+KEY_LOG_ALPHA = 60               # 透明度 (0=透明, 255=不透明)
+KEY_LOG_MARGIN = 12              # 画面端からの余白 px
+KEY_LOG_LINE_WIDTH = 40          # 1行あたりの文字数（折り返し）
